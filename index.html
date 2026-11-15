@@ -309,20 +309,25 @@ button.missed-toggle {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: #edf3ef;
-  color: #224c44;
-  border: 1px solid #c9dad2;
+  background: #c5d6e5;
+  color: #203b55;
+  border: 1px solid #91aac0;
 }
-button.missed-toggle.has-missed {
-  background: #f8ecda;
-  color: #604221;
-  border-color: #d8b789;
+button.missed-toggle.has-missed:not(:disabled) {
+  background: #f2d9db;
+  color: #632d37;
+  border-color: #be9298;
 }
 button.missed-toggle[aria-pressed="true"] {
-  background: #3e6d5d;
+  background: #294b6b;
   color: #fff;
-  border-color: #3e6d5d;
+  border-color: #294b6b;
   box-shadow: inset 0 2px 4px #0003;
+}
+button.missed-toggle.has-missed[aria-pressed="true"]:not(:disabled) {
+  background: #773741;
+  color: #fff;
+  border-color: #773741;
 }
 .missed-count {
   display: grid;
@@ -441,7 +446,14 @@ button.bilan-button:disabled {
 }
 .blitz-actions button { min-height: 44px; padding: 6px 10px; font-size: clamp(.7rem, 2dvh, .9rem); }
 .blitz-actions button:not(.blitz-stop) { max-width: 192px; }
-.blitz-stop:not(.confirm-red) { background: #4b5764; }
+button.blitz-stop {
+  background: #f2d9db;
+  color: #632d37;
+}
+button.blitz-stop.confirm-red {
+  background: #773741;
+  color: #fff;
+}
 .blitz-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin: 12px 0 8px; }
 .blitz-clock { color: #35594c; }
 .blitz-prompt {
@@ -476,6 +488,57 @@ button.bilan-button:disabled {
   .blitz-dialog[open] { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr) 66px minmax(0,1fr); }
   .blitz-actions { transform: translate(-50%, -50%); max-width: calc(100vw - 12px); gap: 4px; }
   .blitz-actions button { max-width: 36vw; }
+}
+
+
+@media (orientation: landscape) {
+  .blitz-dialog.blitz-tabletop[open] {
+    --blitz-divider: 78px;
+    container-type: size;
+    grid-template-columns: minmax(0, 1fr) var(--blitz-divider) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .blitz-tabletop .blitz-side {
+    place-self: center;
+    width: 100cqh;
+    height: calc((100cqw - var(--blitz-divider)) / 2);
+  }
+  .blitz-tabletop .blitz-side:first-child { transform: rotate(90deg); }
+  .blitz-tabletop .blitz-side:last-child { transform: rotate(-90deg); }
+  .blitz-tabletop .blitz-actions {
+    max-width: calc(100cqh - 16px);
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+}
+@media (orientation: portrait) {
+  .blitz-dialog.blitz-tabletop[open] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 66px minmax(0, 1fr);
+  }
+  .blitz-tabletop .blitz-actions {
+    max-width: calc(100vw - 12px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .blitz-dialog:not(.blitz-tabletop)[open] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "player-one player-two" "controls controls";
+    column-gap: 2px;
+  }
+  .blitz-dialog:not(.blitz-tabletop) .blitz-side:first-child { grid-area: player-one; transform: none; }
+  .blitz-dialog:not(.blitz-tabletop) .blitz-side:last-child { grid-area: player-two; }
+  .blitz-dialog:not(.blitz-tabletop) .blitz-middle { grid-area: controls; }
+  .blitz-dialog:not(.blitz-tabletop) .blitz-actions {
+    position: static;
+    width: 100%;
+    max-width: none;
+    padding: 8px;
+    flex-wrap: wrap;
+    transform: none;
+  }
 }
 
 .bilan-actions {
@@ -1223,6 +1286,10 @@ function renderBlitzLauncher() {
 function openBlitz() {
  const opener = document.activeElement;
  blitzDialog = blitzElement('dialog', 'blitz-dialog');
+ // iPadOS may identify as a Mac even when a mouse or trackpad is attached.
+ const isIPad = /iPad/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+ if (isIPad || matchMedia('(pointer: coarse)').matches) blitzDialog.classList.add('blitz-tabletop');
  blitzDialog.setAttribute('aria-label', modeLabels().blitz);
  const sides = [blitzElement('section', 'blitz-side'), blitzElement('section', 'blitz-side')];
  const middle = blitzElement('div', 'blitz-middle');
@@ -1673,7 +1740,13 @@ function showSessionSummary(refresh=false){
  const head=document.createElement('tr');for(const t of [tr('Lernmodus','Mode'),tr('Bearbeitete Wörter','Mots travaillés')]){const th=document.createElement('th');th.textContent=t;head.append(th)}table.append(head);
  for(const [key,label] of Object.entries(modeLabels())){const tr=document.createElement('tr');for(const value of [label,String(sessionCounts[key])]){const td=document.createElement('td');td.textContent=value;tr.append(td)}table.append(tr)}
  const total=Object.values(sessionCounts).reduce((a,b)=>a+b,0);
- const info=document.createElement('p');info.textContent=tr(`Insgesamt ${total} Wörter bearbeitet (${sessionWords.size} verschiedene). Noch ${missed.size} Wörter auf der Fehlerliste.`,`Au total, ${total} mots travaillés (${sessionWords.size} différents). ${missed.size} mots restent à revoir.`);
+ const unique = sessionWords.size;
+ const remaining = missed.size;
+ const info = document.createElement('p');
+ info.textContent = tr(
+  `Insgesamt ${total} ${total === 1 ? 'Wort' : 'Wörter'} bearbeitet (${unique} ${unique === 1 ? 'verschiedenes Wort' : 'verschiedene Wörter'}). Noch ${remaining} ${remaining === 1 ? 'Wort' : 'Wörter'} auf der Fehlerliste.`,
+  `Au total, ${total} ${total === 1 ? 'mot travaillé' : 'mots travaillés'} (${unique} ${unique === 1 ? 'mot différent' : 'mots différents'}). ${remaining} ${remaining === 1 ? 'mot reste' : 'mots restent'} à revoir.`
+ );
  const note=document.createElement('p');note.className='hint';note.textContent=tr('Die Angaben gelten nur für diese geöffnete Browser-Sitzung. Beim Neuladen werden sie zurückgesetzt. Es werden keine Daten an den Lehrer übertragen.','Ces données ne sont conservées que pendant cette session. Elles sont effacées au rechargement de la page. Aucune donnée n’est transmise au professeur.');
  const btn=document.createElement('button');btn.dataset.sessionRestart='yes';btn.textContent=tr('Neue Session starten','Commencer une nouvelle session');btn.onclick=()=>confirmNewSession(btn);
  status.append(heading,para,table);
@@ -1704,7 +1777,7 @@ function showSessionSummary(refresh=false){
   const lettersResult = document.createElement('p');
   lettersResult.textContent = tr(
    `Fehlende Buchstaben · ${lettersCorrect} von ${sessionCounts.letters} richtig`,
-   `Lettres manquantes · ${lettersCorrect} bonnes réponses sur ${sessionCounts.letters}`
+   `Lettres manquantes · ${lettersCorrect} ${lettersCorrect === 1 ? "bonne réponse" : "bonnes réponses"} sur ${sessionCounts.letters}`
   );
   status.append(lettersResult);
  }
@@ -1825,7 +1898,7 @@ function chapterLabel(word) {
  return unit ? unit.querySelector('legend').textContent + ' · ' + label : label;
 }
 
-function start(){updateChapterCaption();$('missed').disabled=mode==='duel'||mode==='blitz';$('duel').hidden=true;$('letters').hidden=true;syncDirectionControl();stopMemoryTimer();$('memory-time').classList.add('hidden');chronoEnded=false;memoryRound++;$('memory-board').classList.add('hidden');$('choices').classList.remove('hidden');stopChrono();resetAllConfirmations();if(sessionEnd)return;const units = appliedChapters; let pool=vocab.filter(w=>units.some(u=>matchesChapter(w,u))&&(!reviewingMissed()||missed.has(w.id)));deck=shuffle(pool);if(mode==='letters')deck=deck.filter(word=>/\p{L}/u.test(word.fr)).slice(0,10);pos=0;correct=0;answered=false;setText('count',tr(`${pool.length} Vokabeln verfügbar${reviewingMissed()?' (Fehlerliste)':''}`,`${pool.length} mots disponibles${reviewingMissed()?' (à revoir)':''}`));if(mode==='memory')initMemory();else if(mode==='duel')initDuel();else if(mode==='letters')startLettersWord();else if(mode==='blitz')renderBlitzLauncher();else render();if(mode==='challenge'&&deck.length)beginChrono()}
+function start(){updateChapterCaption();$('missed').disabled=mode==='duel'||mode==='blitz';$('duel').hidden=true;$('letters').hidden=true;syncDirectionControl();stopMemoryTimer();$('memory-time').classList.add('hidden');chronoEnded=false;memoryRound++;$('memory-board').classList.add('hidden');$('choices').classList.remove('hidden');stopChrono();resetAllConfirmations();if(sessionEnd)return;const units = appliedChapters; let pool=vocab.filter(w=>units.some(u=>matchesChapter(w,u))&&(!reviewingMissed()||missed.has(w.id)));deck=shuffle(pool);if(mode==='letters')deck=deck.filter(word=>/\p{L}/u.test(word.fr)).slice(0,10);pos=0;correct=0;answered=false;setText('count',tr(`${pool.length} ${pool.length === 1 ? 'Vokabel' : 'Vokabeln'} verfügbar${reviewingMissed()?' (Fehlerliste)':''}`,`${pool.length} ${pool.length === 1 ? 'mot disponible' : 'mots disponibles'}${reviewingMissed()?' (à revoir)':''}`));if(mode==='memory')initMemory();else if(mode==='duel')initDuel();else if(mode==='letters')startLettersWord();else if(mode==='blitz')renderBlitzLauncher();else render();if(mode==='challenge'&&deck.length)beginChrono()}
 function render(){
  const status=$('status'), game=$('game');
  if(!deck.length){
@@ -1908,8 +1981,8 @@ function translate() {
   resetAllConfirmations();
   if (sessionEnd) { showSessionSummary(true); return; }
   setText('count',tr(
-    `${deck.length} Vokabeln verfügbar${reviewingMissed()?' (Fehlerliste)':''}`,
-    `${deck.length} mots disponibles${reviewingMissed()?' (à revoir)':''}`
+    `${deck.length} ${deck.length === 1 ? 'Vokabel' : 'Vokabeln'} verfügbar${reviewingMissed()?' (Fehlerliste)':''}`,
+    `${deck.length} ${deck.length === 1 ? 'mot disponible' : 'mots disponibles'}${reviewingMissed()?' (à revoir)':''}`
   ));
   if (mode==='memory') { renderMemory(); return; }
   if (mode==='duel') { renderDuel(); return; }
